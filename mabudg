@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+require 'pathname'
+
+class Mabudg
+
+  def initialize(root = "#{ENV['HOME']}/.mabudg")
+    FileUtils.mkdir_p root
+    @root = Pathname.new root
+  end
+
+  def edit(path)
+    `#{ENV['EDITOR'] || "emacs -nw"} #{path}`
+  end
+
+  def calc
+    (fixed_spendings + spendings) / days_in_month
+  end
+
+  def spendings_path
+    @root.join "#{Time.new.year}_#{Time.new.mon}"
+  end
+
+  def fixed_path
+    @root.join "fixed"
+  end
+
+  protected
+  def open_file(path)
+    File.new(path, File::CREAT|File::RDWR, 0600)
+  end
+
+  def sumup_file(file)
+    file.each_line.inject(0) do |sum, line|
+      sum + line.to_i
+    end
+  end
+
+  def fixed_spendings
+    sumup_file open_file(fixed_path)
+  end
+
+  def spendings
+    sumup_file open_file(records_path)
+  end
+
+  def days_in_month(date = Time.new)
+    return 29 if date.mon == 2 && Date.gregorian_leap?(date.year)
+    [nil, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][date.mon]
+  end
+end
+
+mabudg = Mabudg.new
+
+case ARGV[0]
+when 'spendings' && 's'
+  mabudg.edit mabudg.spendings_path
+when 'fixed' && 'f'
+  mabudg.edit mabudg.fixed_path
+else
+  puts mabudg.calc
+end
