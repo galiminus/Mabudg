@@ -15,7 +15,18 @@ class Mabudg
   end
 
   def calc
-    (fixed_spendings + spendings) / days_in_month
+    (sumup(fixed_spendings) + sumup(spendings)) /
+      (days_in_month - Time.now.day)
+  end
+
+  def verbose
+    puts list
+    puts "(#{sumup(fixed_spendings)} + #{sumup(spendings)}) / (#{days_in_month} - #{Time.now.day})"
+    puts calc
+  end
+
+  def list
+    fixed_spendings + spendings
   end
 
   def spendings_path
@@ -31,18 +42,18 @@ class Mabudg
     File.new(path, File::CREAT|File::RDWR, 0600)
   end
 
-  def sumup_file(file)
-    file.each_line.inject(0) do |sum, line|
+  def sumup(lines)
+    lines.inject(0) do |sum, line|
       sum + line.to_i
     end
   end
 
   def fixed_spendings
-    sumup_file open_file(fixed_path)
+    open_file(fixed_path).readlines
   end
 
   def spendings
-    sumup_file open_file(spendings_path)
+    open_file(spendings_path).readlines
   end
 
   def days_in_month(date = Time.new)
@@ -54,10 +65,14 @@ end
 mabudg = Mabudg.new
 
 case ARGV[0]
-when 'spendings' || 's'
+when 'spendings', 's'
   mabudg.edit mabudg.spendings_path
-when 'fixed' || 'f'
+when 'fixed', 'f'
   mabudg.edit mabudg.fixed_path
+when 'list', 'l'
+  puts mabudg.list
+when 'verbose', 'v'
+  mabudg.verbose
 else
   puts mabudg.calc
 end
